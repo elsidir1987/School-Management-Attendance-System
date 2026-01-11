@@ -14,6 +14,8 @@ Dashboard: Συνολική εικόνα σχολείου με γραφήματ�
 
 Διαχείριση Τμημάτων & Εκπαιδευτικών: Οργάνωση της δομής του σχολείου.
 
+Alerts: Παρακολούθηση ορίου απουσιών (ειδοποίηση στα 20+).
+
 👩‍🏫 Για τον Εκπαιδευτικό (Teacher)
 
 Dashboard Τμήματος: Ειδοποίηση για μαθητές που πλησιάζουν το όριο των 20 απουσιών ("Critical List").
@@ -24,18 +26,35 @@ Dashboard Τμήματος: Ειδοποίηση για μαθητές που π
 
 Προφίλ Μαθητή: Καταγραφή τηλεφώνων επικοινωνίας γονέων και σχολίων για κάθε μαθητή.
 
+Βαθμολόγιο: Καταχώρηση βαθμών ανά μάθημα και τετράμηνο.
+
+Έλεγχος Προόδου: Αυτόματη έκδοση επίσημου PDF Ελέγχου Προόδου.
+
+Ενημέρωση Γονέων: Δυνατότητα αποστολής βαθμολογίας μέσω WhatsApp/Viber.
+
 🏗 Αρχιτεκτονική (Architecture)
 Η εφαρμογή ακολουθεί την αρχιτεκτονική Client-Server με διαχωρισμό των ευθυνών (Separation of Concerns):
 
-Frontend: React.js με τη βιβλιοθήκη UI Ant Design. Χρήση Axios για κλήσεις API και Recharts για τα γραφήματα.
+Frontend: React.js με τη βιβλιοθήκη UI Ant Design. Χρήση Axios για κλήσεις API και Recharts για τα γραφήματα.jsPDF & autoTable για την παραγωγή εγγράφων.
 
-Backend: Java με το framework Spring Boot.
+Backend: Java με το framework Spring Boot.MySQL (μέσω XAMPP/phpMyAdmin).
+Lombok για καθαρό κώδικα.
 
 Spring Security: Διαχείριση αυθεντικοποίησης και ρόλων (RBAC).
 
 Spring Data JPA: Επικοινωνία με τη βάση δεδομένων μέσω αντικειμενοστραφούς προσέγγισης (ORM).
 
 Database: MySQL για τη διατήρηση των δεδομένων.
+
+Classrooms: Τμήματα ανά τάξη.
+
+Students: Στοιχεία μαθητών συνδεδεμένα με τμήματα.
+
+Teachers: Εκπαιδευτικοί με ειδικότητες.
+
+Attendance: Ιστορικό απουσιών ανά ημερομηνία.
+
+Grades: Βαθμολογία ανά μάθημα.
 
 🛠 Οδηγίες Εγκατάστασης (Setup)
 1. Προαπαιτούμενα
@@ -65,6 +84,8 @@ spring.datasource.password=
 spring.jpa.hibernate.ddl-auto=update
 
 Εκτελέστε την κλάση SchoolApplication.java.
+
+Ο server τρέχει στο http://localhost:8080.
 
 4. Εκτέλεση Frontend (React)
 
