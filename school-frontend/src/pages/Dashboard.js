@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-// Προσθήκη List και Badge στο import
 import { Row, Col, Card, Statistic, Spin, Typography, Divider, List, Badge } from 'antd';
 import { UserOutlined, TeamOutlined, BankOutlined, WarningOutlined } from '@ant-design/icons';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
@@ -7,34 +6,53 @@ import axios from 'axios';
 
 const { Title } = Typography;
 
+/**
+ * Component: Dashboard
+ * Σκοπός: Παρέχει μια συνολική εικόνα της κατάστασης του σχολείου.
+ * Διαθέτει δύο όψεις:
+ * 1. Admin View: Γενικά στατιστικά και γραφήματα για όλο το σχολείο.
+ * 2. Teacher View: Συγκεκριμένα στατιστικά για το τμήμα του δασκάλου και λίστα μαθητών σε κίνδυνο (όριο απουσιών).
+ */
 const Dashboard = ({ user }) => {
+    // States για στατιστικά, γραφήματα και λίστες προειδοποιήσεων
     const [stats, setStats] = useState({ totalStudents: 0, totalTeachers: 0, totalClassrooms: 0, absentToday: 0, criticalStudents: 0 });
     const [chartData, setChartData] = useState([]);
-    // Προσθήκη state για τη λίστα των κρίσιμων μαθητών
     const [criticalStudentsList, setCriticalStudentsList] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    // Έλεγχος δικαιωμάτων βάσει του ρόλου που έρχεται από το Backend
     const isAdmin = user?.role === 'ADMIN';
 
+    /**
+     * useEffect Hook: Ανάκτηση δεδομένων κατά τη φόρτωση.
+     * Χρησιμοποιεί Promise.all για παράλληλες κλήσεις API στον Admin, βελτιώνοντας την ταχύτητα.
+     */
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             try {
                 if (isAdmin) {
+                    // Λογική ADMIN: Συγκέντρωση δεδομένων από όλο το σύστημα
                     const [resS, resT, resC] = await Promise.all([
                         axios.get('http://localhost:8080/api/students'),
                         axios.get('http://localhost:8080/api/teachers'),
                         axios.get('http://localhost:8080/api/classrooms')
                     ]);
+
                     setStats({
                         totalStudents: resS.data.length,
                         totalTeachers: resT.data.length,
                         totalClassrooms: resC.data.length
                     });
-                    const data = resC.data.map(c => ({ name: c.name, μαθητές: c.students?.length || 0 }));
+
+                    // Διαμόρφωση δεδομένων για το BarChart (Recharts)
+                    const data = resC.data.map(c => ({
+                        name: c.name,
+                        μαθητές: c.students?.length || 0
+                    }));
                     setChartData(data);
                 } else {
-                    // Φέρνουμε τα βασικά στατιστικά
+                    // Λογική TEACHER: Εστίαση στο συγκεκριμένο τμήμα του εκπαιδευτικού
                     const res = await axios.get(`http://localhost:8080/api/attendance/teacher-stats/${user.classroom?.id}`);
                     setStats({
                         totalStudents: res.data.totalStudents,
@@ -42,12 +60,12 @@ const Dashboard = ({ user }) => {
                         criticalStudents: res.data.criticalStudents || 0
                     });
 
-                    // Φέρνουμε τη λίστα των μαθητών σε κίνδυνο
+                    // Ανάκτηση μαθητών που πλησιάζουν το όριο απουσιών (>20)
                     const resCritical = await axios.get(`http://localhost:8080/api/attendance/critical-students/${user.classroom?.id}`);
                     setCriticalStudentsList(resCritical.data);
                 }
             } catch (error) {
-                console.error("Dashboard error:", error);
+                console.error("Dashboard data fetching error:", error);
             }
             setLoading(false);
         };
@@ -55,15 +73,18 @@ const Dashboard = ({ user }) => {
         fetchData();
     }, [user, isAdmin]);
 
+    // Εμφάνιση Spinner κατά τη διάρκεια της φόρτωσης των δεδομένων
     if (loading) return <div style={{ textAlign: 'center', padding: '50px' }}><Spin size="large" /></div>;
 
     return (
         <div style={{ padding: '20px' }}>
+            {/* Δυναμικός Τίτλος βάσει Ρόλου */}
             <Title level={2}>
                 {isAdmin ? "📊 Γενική Εικόνα Σχολείου" : `🏫 Πίνακας Ελέγχου: Τμήμα ${user.classroom?.name}`}
             </Title>
             <Divider />
 
+            {/* Πάνελ Στατιστικών (Cards) */}
             <Row gutter={16}>
                 {isAdmin ? (
                     <>
@@ -80,6 +101,7 @@ const Dashboard = ({ user }) => {
                 )}
             </Row>
 
+            {/* Λίστα Προειδοποίησης (Μόνο για Δασκάλους) */}
             {!isAdmin && (
                 <Row gutter={16} style={{ marginTop: '20px' }}>
                     <Col span={24}>
@@ -107,11 +129,18 @@ const Dashboard = ({ user }) => {
                 </Row>
             )}
 
+            {/* Γράφημα Κατανομής (Μόνο για Admin) */}
             {isAdmin && (
                 <Card title="📊 Κατανομή Μαθητών ανά Τμήμα" style={{ marginTop: '20px' }}>
                     <div style={{ width: '100%', height: 300 }}>
                         <ResponsiveContainer>
-                            <BarChart data={chartData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis /><Tooltip /><Bar dataKey="μαθητές" fill="#1890ff" /></BarChart>
+                            <BarChart data={chartData}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" />
+                                <YAxis />
+                                <Tooltip />
+                                <Bar dataKey="μαθητές" fill="#1890ff" radius={[4, 4, 0, 0]} />
+                            </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </Card>

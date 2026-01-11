@@ -5,15 +5,28 @@ import axios from 'axios';
 
 const { Option } = Select;
 
+/**
+ * Component: TeacherList
+ * Σκοπός: Διαχείριση και προβολή του εκπαιδευτικού προσωπικού του σχολείου.
+ * Λειτουργίες:
+ * 1. Προβολή λίστας με ειδικότητες και υπεύθυνα τμήματα.
+ * 2. Φιλτράρισμα ανά ειδικότητα (π.χ. ΠΕ70, ΠΕ86).
+ * 3. Πλήρες CRUD (Προσθήκη, Ενημέρωση, Διαγραφή) με περιορισμούς ρόλων (Admin only).
+ */
 const TeacherList = ({ userRole }) => {
-    const [teachers, setTeachers] = useState([]);
-    const [filteredTeachers, setFilteredTeachers] = useState([]);
-    const [classrooms, setClassrooms] = useState([]);
+    // --- States εφαρμογής ---
+    const [teachers, setTeachers] = useState([]); // Η πλήρης λίστα από το Backend
+    const [filteredTeachers, setFilteredTeachers] = useState([]); // Η λίστα μετά το φιλτράρισμα
+    const [classrooms, setClassrooms] = useState([]); // Διαθέσιμα τμήματα για ανάθεση
     const [loading, setLoading] = useState(true);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingTeacher, setEditingTeacher] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false); // Έλεγχος Modal φόρμας
+    const [editingTeacher, setEditingTeacher] = useState(null); // Εκπαιδευτικός προς επεξεργασία
     const [form] = Form.useForm();
 
+    /**
+     * fetchTeachers: Ανάκτηση εκπαιδευτικών.
+     * Χρήση useCallback για αποφυγή περιττών re-renders στις εξαρτήσεις του useEffect.
+     */
     const fetchTeachers = useCallback(() => {
         setLoading(true);
         axios.get('http://localhost:8080/api/teachers')
@@ -28,6 +41,7 @@ const TeacherList = ({ userRole }) => {
             });
     }, []);
 
+    // Ανάκτηση τμημάτων για το Select της φόρμας
     const fetchClassrooms = useCallback(() => {
         axios.get('http://localhost:8080/api/classrooms')
             .then(res => setClassrooms(res.data));
@@ -38,7 +52,10 @@ const TeacherList = ({ userRole }) => {
         fetchClassrooms();
     }, [fetchTeachers, fetchClassrooms]);
 
-    // Άνοιγμα φόρμας για Προσθήκη ή Επεξεργασία
+    /**
+     * openForm: Προετοιμασία της φόρμας.
+     * Αν υπάρχει αντικείμενο teacher, η φόρμα γεμίζει (Edit mode), αλλιώς καθαρίζει (Add mode).
+     */
     const openForm = (teacher = null) => {
         setEditingTeacher(teacher);
         if (teacher) {
@@ -55,6 +72,10 @@ const TeacherList = ({ userRole }) => {
         setIsModalOpen(true);
     };
 
+    /**
+     * handleSave: Αποστολή δεδομένων στο Backend.
+     * Περιλαμβάνει λογική για POST (νέος) και PUT (ενημέρωση).
+     */
     const handleSave = async (values) => {
         try {
             setLoading(true);
@@ -63,11 +84,9 @@ const TeacherList = ({ userRole }) => {
                 lastName: values.lastName,
                 specialty: values.specialty,
                 email: values.email,
-                // Αν η τιμή είναι null ή undefined, στέλνουμε null
+                // Σημαντικό: Σύνδεση με το τμήμα μέσω ID αν έχει επιλεγεί
                 classroom: values.classroom_id ? { id: values.classroom_id } : null
             };
-
-            console.log("Sending payload:", payload); // Δες τι στέλνεις
 
             if (editingTeacher) {
                 await axios.put(`http://localhost:8080/api/teachers/${editingTeacher.id}`, payload);
@@ -78,34 +97,19 @@ const TeacherList = ({ userRole }) => {
             }
 
             setIsModalOpen(false);
-            fetchTeachers();
+            fetchTeachers(); // Ανανέωση της λίστας
         } catch (error) {
-            console.error("Full error object:", error); // Δες το σφάλμα στην κονσόλα (F12)
-            message.error(error.response?.data?.message || "Αποτυχία αποθήκευσης. Ελέγξτε αν το τμήμα έχει ήδη δάσκαλο.");
+            // Έλεγχος αν το τμήμα είναι ήδη πιασμένο (Business Logic Error από το Backend)
+            message.error(error.response?.data?.message || "Αποτυχία αποθήκευσης.");
         } finally {
             setLoading(false);
         }
     };
 
-    const handleDelete = (id) => {
-        Modal.confirm({
-            title: 'Διαγραφή Εκπαιδευτικού',
-            content: 'Είστε σίγουροι; Η ενέργεια αυτή δεν αναιρείται.',
-            okText: 'Διαγραφή',
-            okType: 'danger',
-            cancelText: 'Άκυρο',
-            onOk: async () => {
-                try {
-                    await axios.delete(`http://localhost:8080/api/teachers/${id}`);
-                    message.success("Ο εκπαιδευτικός διαγράφηκε");
-                    fetchTeachers();
-                } catch (error) {
-                    message.error("Σφάλμα κατά τη διαγραφή");
-                }
-            }
-        });
-    };
-
+    /**
+     * handleFilterChange: Φιλτράρισμα της λίστας στην πλευρά του Frontend.
+     * Επιτρέπει γρήγορη αναζήτηση χωρίς επιπλέον κλήσεις στο API.
+     */
     const handleFilterChange = (value) => {
         if (!value) {
             setFilteredTeachers(teachers);
@@ -117,6 +121,30 @@ const TeacherList = ({ userRole }) => {
         }
     };
 
+    // Προσθήκη της συνάρτησης διαγραφής
+    const handleDelete = (id) => {
+        Modal.confirm({
+            title: 'Διαγραφή Εκπαιδευτικού',
+            content: 'Είστε σίγουροι; Η ενέργεια αυτή δεν αναιρείται.',
+            okText: 'Διαγραφή',
+            okType: 'danger',
+            cancelText: 'Άκυρο',
+            onOk: async () => {
+                try {
+                    await axios.delete(`http://localhost:8080/api/teachers/${id}`);
+                    message.success("Ο εκπαιδευτικός διαγράφηκε");
+                    fetchTeachers(); // Καλεί τη λήψη των δασκάλων ξανά
+                } catch (error) {
+                    message.error("Σφάλμα κατά τη διαγραφή");
+                }
+            }
+        });
+    };
+
+    /**
+     * columns: Ορισμός στηλών πίνακα.
+     * Περιλαμβάνει conditional logic για την εμφάνιση των κουμπιών "Ενέργειες" μόνο στους ADMIN.
+     */
     const columns = [
         {
             title: 'Εκπαιδευτικός',
@@ -128,7 +156,12 @@ const TeacherList = ({ userRole }) => {
                 </span>
             )
         },
-        { title: 'Ειδικότητα', dataIndex: 'specialty', key: 'specialty', render: (tag) => <Tag color="blue">{tag}</Tag> },
+        {
+            title: 'Ειδικότητα',
+            dataIndex: 'specialty',
+            key: 'specialty',
+            render: (tag) => <Tag color="blue">{tag}</Tag>
+        },
         { title: 'Email', dataIndex: 'email', key: 'email' },
         {
             title: 'Υπεύθυνος Τμήματος',
@@ -138,7 +171,7 @@ const TeacherList = ({ userRole }) => {
         }
     ];
 
-    // Προσθήκη στήλης ενεργειών ΜΟΝΟ αν ο χρήστης είναι ADMIN
+    // Προσθήκη στήλης Ενεργειών μόνο αν ο χρήστης έχει ρόλο ADMIN
     if (userRole && userRole.includes("ADMIN")) {
         columns.push({
             title: 'Ενέργειες',
@@ -156,13 +189,13 @@ const TeacherList = ({ userRole }) => {
         <Card
             title="👨‍🏫 Προσωπικό Σχολείου"
             style={{ margin: '20px', borderRadius: '8px' }}
-            // Το κουμπί προσθήκης εμφανίζεται ΜΟΝΟ στον ADMIN
-            extra={userRole && userRole.includes("ADMIN") && (
+            extra={userRole?.includes("ADMIN") && (
                 <Button type="primary" icon={<PlusOutlined />} onClick={() => openForm()}>
                     Νέος Εκπαιδευτικός
                 </Button>
             )}
         >
+            {/* UI Φιλτραρίσματος */}
             <div style={{ marginBottom: 20 }}>
                 <Select
                     placeholder="🔍 Φιλτράρισμα ανά ειδικότητα"
@@ -173,8 +206,6 @@ const TeacherList = ({ userRole }) => {
                     <Option value="ΠΕ70">Δάσκαλοι Τάξης (ΠΕ70)</Option>
                     <Option value="ΠΕ06">Αγγλικών (ΠΕ06)</Option>
                     <Option value="ΠΕ11">Φυσική Αγωγή (ΠΕ11)</Option>
-                    <Option value="ΠΕ86">Πληροφορική (ΠΕ86)</Option>
-                    <Option value="ΠΕ79">Μουσική (ΠΕ79)</Option>
                 </Select>
             </div>
 
@@ -186,39 +217,23 @@ const TeacherList = ({ userRole }) => {
                 pagination={{ pageSize: 10 }}
             />
 
+            {/* Modal Φόρμας */}
             <Modal
                 title={editingTeacher ? "📝 Επεξεργασία Εκπαιδευτικού" : "🆕 Προσθήκη Εκπαιδευτικού"}
                 open={isModalOpen}
                 onOk={() => form.submit()}
                 onCancel={() => setIsModalOpen(false)}
-                okText="Αποθήκευση"
-                cancelText="Άκυρο"
-                destroyOnClose // Καθαρίζει τη φόρμα όταν κλείνει
+                destroyOnClose
             >
                 <Form form={form} layout="vertical" onFinish={handleSave}>
-                    <Form.Item name="firstName" label="Όνομα" rules={[{ required: true, message: 'Εισάγετε όνομα' }]}>
-                        <Input />
-                    </Form.Item>
-                    <Form.Item name="lastName" label="Επίθετο" rules={[{ required: true, message: 'Εισάγετε επίθετο' }]}>
-                        <Input />
-                    </Form.Item>
-                    <Form.Item name="specialty" label="Ειδικότητα" rules={[{ required: true, message: 'Εισάγετε ειδικότητα' }]}>
-                        <Input placeholder="π.χ. ΠΕ70 - Δάσκαλος" />
-                    </Form.Item>
-                    <Form.Item name="email" label="Email" rules={[{ type: 'email', message: 'Λάθος μορφή email' }]}>
-                        <Input />
-                    </Form.Item>
+                    <Form.Item name="firstName" label="Όνομα" rules={[{ required: true }]}><Input /></Form.Item>
+                    <Form.Item name="lastName" label="Επίθετο" rules={[{ required: true }]}><Input /></Form.Item>
+                    <Form.Item name="specialty" label="Ειδικότητα" rules={[{ required: true }]}><Input /></Form.Item>
+                    <Form.Item name="email" label="Email" rules={[{ type: 'email' }]}><Input /></Form.Item>
                     <Form.Item name="classroom_id" label="Υπεύθυνος Τμήματος">
-                        <Select
-                            placeholder="Επιλέξτε τμήμα ή αφήστε κενό για ειδικότητες"
-                            allowClear
-                        >
-                            {/* Προσθήκη επιλογής για "Κανένα" */}
-                            <Option value={null}>--- Κανένα Τμήμα / Ειδικότητα ---</Option>
-
-                            {classrooms.map(c => (
-                                <Option key={c.id} value={c.id}>{c.name}</Option>
-                            ))}
+                        <Select placeholder="Επιλέξτε τμήμα" allowClear>
+                            <Option value={null}>--- Κανένα Τμήμα ---</Option>
+                            {classrooms.map(c => <Option key={c.id} value={c.id}>{c.name}</Option>)}
                         </Select>
                     </Form.Item>
                 </Form>

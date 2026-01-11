@@ -11,7 +11,7 @@ import {
     BookOutlined,
     HistoryOutlined
 } from '@ant-design/icons';
-import { Typography, Space, Divider, Modal, Tag, Avatar } from 'antd';
+import { Typography, Space, Divider, Modal, Tag, Avatar,message} from 'antd';
 import { InfoCircleOutlined, GithubOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import StudentList from './pages/StudentList';
 import ClassroomList from './pages/ClassroomList';
@@ -37,6 +37,16 @@ function App() {
         setCurrentPage('students');
     };
 
+    const handleSaveGrade = async (gradeData) => {
+        try {
+            await axios.post("http://localhost:8080/api/grades", gradeData);
+            message.success('Ο βαθμός καταχωρήθηκε επιτυχώς!');
+        } catch (error) {
+            console.error("Error saving grade:", error);
+            message.error('Υπήρξε πρόβλημα κατά την αποθήκευση του βαθμού.');
+        }
+    };
+
     const handleLoginSuccess = async (userData) => {
         try {
             // Καλούμε το /me για να πάρουμε τα πλήρη στοιχεία (π.χ. το classroom του δασκάλου)
@@ -46,7 +56,6 @@ function App() {
             setCurrentPage('dashboard');
         } catch (error) {
             console.error("Error fetching full user profile:", error);
-            // Αν αποτύχει το /me, κρατάμε τουλάχιστον τα βασικά στοιχεία από το login
             setUser(userData);
         }
     };
@@ -120,8 +129,8 @@ function App() {
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)', // Πιο απαλή σκιά
-                        zIndex: 1 // Για να φαίνεται πάνω από το content
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                        zIndex: 1
                     }}>
                         <span>👋 Καλώς ήρθατε, <b>{user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username}</b></span>
                         <Button
@@ -134,7 +143,6 @@ function App() {
                         </Button>
                     </Header>
 
-                    {/* Προσθήκη overflow: 'initial' για να δουλεύει σωστά το scrolling */}
                     <Content style={{
                         margin: '24px 16px 0',
                         padding: 24,
@@ -150,9 +158,11 @@ function App() {
                         {currentPage === 'teachers' && <TeacherList userRole={user.role} />}
                         {currentPage === 'myClassroom' && (
                             <MyClassroom
+                                user={user}
                                 teacherId={user.id}
                                 classroomId={user.classroom?.id}
                                 classroomName={user.classroom?.name}
+                                onSaveGrade={handleSaveGrade}
                             />
                         )}
                         {currentPage === 'attendanceHistory' && (
