@@ -13,6 +13,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * REST Controller: AttendanceController
+ * Σκοπός: Διαχείριση όλων των λειτουργιών που αφορούν τις παρουσίες και τις απουσίες.
+ * Παρέχει endpoints για την αποθήκευση ημερήσιου απουσιολογίου, την ανάκτηση ιστορικού
+ * και τον υπολογισμό στατιστικών για το Dashboard.
+ */
 @RestController
 @RequestMapping("/api/attendance")
 public class AttendanceController {
@@ -23,24 +29,28 @@ public class AttendanceController {
     @Autowired
     private StudentRepository studentRepository;
 
+    /**
+     * Μαζική αποθήκευση παρουσιολογίου.
+     * Δέχεται μια λίστα από εγγραφές (μία για κάθε μαθητή) και ορίζει αυτόματα τη σημερινή ημερομηνία.
+     * @param attendanceList Η λίστα με τις καταστάσεις (παρών/απών) των μαθητών.
+     */
     @PostMapping("/save-batch")
     public void saveAttendance(@RequestBody List<Attendance> attendanceList) {
-        // Ορίζουμε τη σημερινή ημερομηνία για όλες τις εγγραφές
-        attendanceList.forEach(a -> a.setDate(LocalDate.now()));
+        attendanceList.forEach(a -> a.setDate(LocalDate.now())); // Εξασφαλίζουμε τη σωστή ημερομηνία στον server
         attendanceRepository.saveAll(attendanceList);
     }
 
+    /**
+     * Ανάκτηση ιστορικού για συγκεκριμένη ημερομηνία και τμήμα.
+     * Συνδυάζει τη λίστα μαθητών με τις εγγραφές απουσιών για να δείξει την πλήρη εικόνα της τάξης.
+     */
     @GetMapping("/history/{classroomId}/{date}")
     public List<Map<String, Object>> getAttendanceHistory(
             @PathVariable Long classroomId,
             @PathVariable String date) {
 
         LocalDate localDate = LocalDate.parse(date);
-
-        // 1. Παίρνουμε όλους τους μαθητές του τμήματος
         List<Student> allStudents = studentRepository.findByClassroomId(classroomId);
-
-        // 2. Παίρνουμε τις απουσίες που καταγράφηκαν εκείνη τη μέρα
         List<Attendance> dayAttendance = attendanceRepository.findByClassroomIdAndDate(classroomId, localDate);
 
         List<Map<String, Object>> result = new ArrayList<>();
@@ -51,55 +61,58 @@ public class AttendanceController {
             row.put("firstName", student.getFirstName());
             row.put("lastName", student.getLastName());
 
-            // Ψάχνουμε αν υπάρχει εγγραφή για αυτόν τον μαθητή τη συγκεκριμένη μέρα
+            // Λογική αντιστοίχισης: Αν δεν υπάρχει εγγραφή στη βάση, το σύστημα θεωρεί τον μαθητή "Παρόντα"
             boolean isPresent = dayAttendance.stream()
                     .filter(a -> a.getStudent().getId().equals(student.getId()))
                     .map(Attendance::isPresent)
                     .findFirst()
-                    .orElse(true); // Αν δεν υπάρχει εγγραφή, τον θεωρούμε παρόντα
+                    .orElse(true);
 
             row.put("present", isPresent);
             result.add(row);
         }
-
         return result;
     }
 
+    /**
+     * Υπολογισμός συνολικών απουσιών ενός μαθητή.
+     * Χρησιμοποιείται για την εμφάνιση του αριθμού στην καρτέλα του μαθητή.
+     */
     @GetMapping("/count-absences/{studentId}")
     public Long getStudentAbsences(@PathVariable Long studentId) {
         return attendanceRepository.countByStudentIdAndPresentFalse(studentId);
     }
 
-    // AttendanceController.java
-
+    /**
+     * Παραγωγή στατιστικών για το Dashboard του εκπαιδευτικού.
+     * Επιστρέφει τον συνολικό αριθμό μαθητών και τους απόντες της τρέχουσας ημέρας.
+     */
     @GetMapping("/teacher-stats/{classroomId}")
     public Map<String, Object> getTeacherStats(@PathVariable Long classroomId) {
         Map<String, Object> stats = new HashMap<>();
 
-        // 1. Συνολικοί μαθητές στο τμήμα
         long totalStudents = studentRepository.countByClassroomId(classroomId);
-
-        // 2. Απόντες σήμερα
         long absentToday = attendanceRepository.findByClassroomIdAndDate(classroomId, LocalDate.now())
                 .stream().filter(a -> !a.isPresent()).count();
 
-        // 3. Μαθητές που έχουν > 20 απουσίες (χρειάζεται ένα custom query στο Repository)
-        // Για απλούστευση τώρα, ας στείλουμε τα βασικά
         stats.put("totalStudents", totalStudents);
         stats.put("absentToday", absentToday);
 
         return stats;
     }
 
+    /**
+     * Εντοπισμός μαθητών σε "κίνδυνο" λόγω απουσιών.
+     * Ελέγχει όλους τους μαθητές και επιστρέφει όσους έχουν ξεπεράσει το όριο προειδοποίησης (15 απουσίες).
+     */
     @GetMapping("/critical-students/{classroomId}")
     public List<Map<String, Object>> getCriticalStudents(@PathVariable Long classroomId) {
-        // Φέρνουμε όλους τους μαθητές του τμήματος
         List<Student> students = studentRepository.findByClassroomId(classroomId);
         List<Map<String, Object>> criticalList = new ArrayList<>();
 
         for (Student s : students) {
             long count = attendanceRepository.countByStudentIdAndPresentFalse(s.getId());
-            if (count >= 15) { // Όριο προειδοποίησης
+            if (count >= 15) {
                 Map<String, Object> map = new HashMap<>();
                 map.put("name", s.getFirstName() + " " + s.getLastName());
                 map.put("absences", count);
@@ -109,9 +122,11 @@ public class AttendanceController {
         return criticalList;
     }
 
+    /**
+     * Επιστρέφει το πλήρες ιστορικό ενός μαθητή (για την κάρτα μαθητή στη React).
+     */
     @GetMapping("/student/{studentId}")
     public List<Attendance> getStudentAttendance(@PathVariable Long studentId) {
-        // Θα χρειαστείς τη μέθοδο findByStudentId στο AttendanceRepository
         return attendanceRepository.findByStudentId(studentId);
     }
 }

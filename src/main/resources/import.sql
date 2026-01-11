@@ -45,13 +45,35 @@ INSERT INTO students (first_name, last_name, email, classroom_id) VALUES ('Σπ�
 INSERT INTO students (first_name, last_name, email, classroom_id) VALUES ('Μαρίνα', 'Αλεξίου', 'student28@school.gr', 5);
 INSERT INTO students (first_name, last_name, email, classroom_id) VALUES ('Λουκάς', 'Μάνος', 'student29@school.gr', 5);
 INSERT INTO students (first_name, last_name, email, classroom_id) VALUES ('Ζωή', 'Κοσμίδου', 'student30@school.gr', 5);
+INSERT INTO students (first_name, last_name, email, classroom_id) VALUES ('Πέτρος', 'Γαλάνης', 'student25@school.gr', 5);
+INSERT INTO students (first_name, last_name, email, classroom_id) VALUES ('Αγγελική', 'Σταύρου', 'student26@school.gr', 5);
 
+-- Τμήμα Δ1 (classroom_id = 7)
+INSERT INTO students (first_name, last_name, email, classroom_id) VALUES ('Κώστας', 'Μανώλης', 'student40@school.gr', 7);
+INSERT INTO students (first_name, last_name, email, classroom_id) VALUES ('Χριστίνα', 'Αλεξίου', 'student41@school.gr', 7);
+
+-- Τμήμα Ε1 (classroom_id = 9)
+INSERT INTO students (first_name, last_name, email, classroom_id) VALUES ('Αλέξανδρος', 'Ρήγας', 'student50@school.gr', 9);
+INSERT INTO students (first_name, last_name, email, classroom_id) VALUES ('Στέλλα', 'Κυριάκου', 'student51@school.gr', 9);
+
+-- Τμήμα ΣΤ1 (classroom_id = 11)
+INSERT INTO students (first_name, last_name, email, classroom_id) VALUES ('Βασίλης', 'Νικολάου', 'student60@school.gr', 11);
+INSERT INTO students (first_name, last_name, email, classroom_id) VALUES ('Ιωάννα', 'Μάρκου', 'student61@school.gr', 11);
+
+-- =========================================================
 -- Δάσκαλοι Τάξεων (ΠΕ70) συνδεδεμένοι με τα τμήματα 1-5
 INSERT INTO teachers (first_name, last_name, specialty, email, classroom_id) VALUES ('Ιωάννης', 'Παππάς', 'ΠΕ70 - Δάσκαλος', 'pappas@school.gr', 1);
 INSERT INTO teachers (first_name, last_name, specialty, email, classroom_id) VALUES ('Ελένη', 'Σοφού', 'ΠΕ70 - Δάσκαλος', 'sofou@school.gr', 2);
 INSERT INTO teachers (first_name, last_name, specialty, email, classroom_id) VALUES ('Ανδρέας', 'Νικολάου', 'ΠΕ70 - Δάσκαλος', 'nikolaou@school.gr', 3);
 INSERT INTO teachers (first_name, last_name, specialty, email, classroom_id) VALUES ('Δήμητρα', 'Φωτίου', 'ΠΕ70 - Δάσκαλος', 'fotiou@school.gr', 4);
 INSERT INTO teachers (first_name, last_name, specialty, email, classroom_id) VALUES ('Κωνσταντίνος', 'Μελάς', 'ΠΕ70 - Δάσκαλος', 'melas@school.gr', 5);
+INSERT INTO teachers (first_name, last_name, specialty, email, classroom_id) VALUES ('Ιωάννης', 'Παππάς', 'ΠΕ70 - Δάσκαλος', 'teacher1@school.gr', 1);
+INSERT INTO teachers (first_name, last_name, specialty, email, classroom_id) VALUES ('Ελένη', 'Σοφού', 'ΠΕ70 - Δάσκαλος', 'teacher2@school.gr', 2);
+INSERT INTO teachers (first_name, last_name, specialty, email, classroom_id) VALUES ('Ανδρέας', 'Νικολάου', 'ΠΕ70 - Δάσκαλος', 'teacher3@school.gr', 3);
+INSERT INTO teachers (first_name, last_name, specialty, email, classroom_id) VALUES ('Δήμητρα', 'Φωτίου', 'ΠΕ70 - Δάσκαλος', 'teacher4@school.gr', 4);
+INSERT INTO teachers (first_name, last_name, specialty, email, classroom_id) VALUES ('Κωνσταντίνος', 'Μελάς', 'ΠΕ70 - Δάσκαλος', 'teacher5@school.gr', 5);
+INSERT INTO teachers (first_name, last_name, specialty, email, classroom_id) VALUES ('Γιώργος', 'Σταματίου', 'ΠΕ70 - Δάσκαλος', 'teacher6@school.gr', 11);
+
 
 -- Εκπαιδευτικοί Ειδικοτήτων (Χωρίς σταθερό τμήμα - classroom_id NULL)
 INSERT INTO teachers (first_name, last_name, specialty, email, classroom_id) VALUES ('Μαρία', 'Λέκκα', 'ΠΕ06 - Αγγλικών', 'lekka@school.gr', NULL);

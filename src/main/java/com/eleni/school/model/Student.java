@@ -1,137 +1,89 @@
 package com.eleni.school.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
 
+/**
+ * Entity: Student
+ * Σκοπός: Αναπαριστά έναν μαθητή στη βάση δεδομένων.
+ * Περιλαμβάνει προσωπικά στοιχεία, στοιχεία επικοινωνίας γονέων και τη σχέση με το τμήμα.
+ */
 @Entity
-    @Table(name = "students")
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public class Student {
+@Table(name = "students")
+@NoArgsConstructor
+@AllArgsConstructor
+public class Student {
 
-        @Id
-        @GeneratedValue(strategy = GenerationType.IDENTITY)
-        private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-        @Column(length = 500)
-        private String comments;
-        private String studentIdNumber;
-        private LocalDate birthDate;
-        private String address;
-        private String gender;
+    private String firstName;
+    private String lastName;
+    private String email;
 
-    public String getStudentIdNumber() {
-        return studentIdNumber;
-    }
+    // Πρόσθετα πεδία για την καρτέλα μαθητή
+    @Column(length = 500)
+    private String comments;      // Παιδαγωγικές σημειώσεις
+    private String parentPhone;   // Τηλέφωνο γονέα (χρησιμοποιείται για WhatsApp/Viber)
+    private String address;       // Διεύθυνση κατοικίας
+    private String gender;        // Φύλο
+    private String studentIdNumber; // Αριθμός Μητρώου
+    private LocalDate birthDate;  // Ημερομηνία Γέννησης
 
-    public void setStudentIdNumber(String studentIdNumber) {
-        this.studentIdNumber = studentIdNumber;
-    }
+    /**
+     * Σχέση ManyToOne με το Classroom.
+     * Πολλοί μαθητές ανήκουν σε ένα τμήμα.
+     * - FetchType.EAGER: Φορτώνει αυτόματα το τμήμα μαζί με τον μαθητή (χρήσιμο για το Frontend).
+     * - @JsonIgnoreProperties("students"): Αποτρέπει το "Circular Reference" (ατέρμονο loop)
+     * κατά τη μετατροπή σε JSON, αγνοώντας τη λίστα μαθητών μέσα στο τμήμα.
+     */
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "classroom_id")
+    @JsonIgnoreProperties("students")
+    private Classroom classroom;
 
-    public void setBirthDate(LocalDate birthDate) {
-        this.birthDate = birthDate;
-    }
 
-    public void setAddress(String address) {
-        this.address = address;
-    }
+    // --- Helper Methods ---
 
-    public void setGender(String gender) {
-        this.gender = gender;
-    }
-
-    public LocalDate getBirthDate() {
-        return birthDate;
-    }
-
-    public String getAddress() {
-        return address;
-    }
-
-    public String getGender() {
-        return gender;
-    }
-
-    public void setComments(String comments) {
-            this.comments = comments;
+    /**
+     * Εξειδικευμένος Setter για το Classroom.
+     * Διασφαλίζει ότι η αμφίδρομη σχέση συγχρονίζεται σωστά και στις δύο πλευρές (Student & Classroom).
+     */
+    public void setClassroom(Classroom classroom) {
+        // 1. Αφαίρεση του μαθητή από τη λίστα του προηγούμενου τμήματος
+        if (this.classroom != null) {
+            this.classroom.getStudents().remove(this);
         }
 
-        public void setParentPhone(String parentPhone) {
-            this.parentPhone = parentPhone;
-        }
+        // 2. Ανάθεση του νέου τμήματος
+        this.classroom = classroom;
 
-        public String getComments() {
-            return comments;
-        }
-
-        public String getParentPhone() {
-            return parentPhone;
-        }
-
-        private String parentPhone;
-
-        public Long getId() {
-            return id;
-        }
-
-        public String getLastName() {
-            return lastName;
-        }
-
-        public String getFirstName() {
-            return firstName;
-        }
-
-        public String getEmail() {
-            return email;
-        }
-
-        public Classroom getClassroom() {
-            return classroom;
-        }
-
-        public void setId(Long id) {
-            this.id = id;
-        }
-
-        public void setFirstName(String firstName) {
-            this.firstName = firstName;
-        }
-
-        public void setLastName(String lastName) {
-            this.lastName = lastName;
-        }
-
-        public void setEmail(String email) {
-            this.email = email;
-        }
-
-        private String firstName;
-        private String lastName;
-        private String email;
-
-        @ManyToOne(fetch = FetchType.EAGER) // Σιγουρέψου ότι είναι EAGER για να φορτώνει αμέσως το τμήμα
-        @JoinColumn(name = "classroom_id")
-        @JsonIgnoreProperties("students")
-        private Classroom classroom;
-
-        public void setClassroom(Classroom classroom) {
-            // 1. Αφαίρεση από το παλιό τμήμα (αν υπήρχε)
-            if (this.classroom != null) {
-                this.classroom.getStudents().remove(this);
-            }
-
-            // 2. Ανάθεση του νέου τμήματος
-            this.classroom = classroom;
-
-            // 3. Προσθήκη στη λίστα του νέου τμήματος (αν δεν είναι null)
-            if (classroom != null && !classroom.getStudents().contains(this)) {
-                classroom.getStudents().add(this);
-            }
+        // 3. Ενημέρωση της λίστας του νέου τμήματος
+        if (classroom != null && !classroom.getStudents().contains(this)) {
+            classroom.getStudents().add(this);
         }
     }
 
+    // --- Getters & Setters ---
+    // (Ο κώδικας περιλαμβάνει όλες τις απαραίτητες μεθόδους πρόσβασης για τα πεδία)
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getFirstName() { return firstName; }
+    public void setFirstName(String firstName) { this.firstName = firstName; }
+    public String getLastName() { return lastName; }
+    public void setLastName(String lastName) { this.lastName = lastName; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+    public String getComments() { return comments; }
+    public void setComments(String comments) { this.comments = comments; }
+    public String getParentPhone() { return parentPhone; }
+    public void setParentPhone(String parentPhone) { this.parentPhone = parentPhone; }
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
+    public Classroom getClassroom() { return classroom; }
+}
